@@ -93,6 +93,10 @@ case $TASK in
         MAPPING="{0:'terrible',1:'great'}"
         TASK_EXTRA="--first_sent_limit 110  --double_demo"
         ;;
+    meituan)
+        TEMPLATE=*cls**sent_0*和*sent_1**mask*因果关系*sep+*
+        MAPPING="{0:'无',1:'有'}"
+        ;;
 
 esac
 

@@ -249,7 +249,7 @@ class Trainer(transformers.Trainer):
         else:
             t_total = int(len(train_dataloader) // self.args.gradient_accumulation_steps * self.args.num_train_epochs)
             num_train_epochs = self.args.num_train_epochs
-
+        # 构造 optimizer 和 scheduler
         self.create_optimizer_and_scheduler(num_training_steps=t_total)
         optimizer = self.optimizer
         scheduler = self.lr_scheduler
@@ -268,11 +268,11 @@ class Trainer(transformers.Trainer):
 
         model = self.model
 
-        if self.args.fp16 and _use_apex:
+        if self.args.fp16 and _use_apex:        # FP16!!
             if not transformers.is_apex_available():
                 raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
             model, optimizer = amp.initialize(model, optimizer, opt_level=self.args.fp16_opt_level)
-
+        # 多卡！！
         # Multi-gpu training (should be after apex fp16 initialization)
         if self.args.n_gpu > 1:
             model = torch.nn.DataParallel(model)
@@ -353,7 +353,7 @@ class Trainer(transformers.Trainer):
                 if steps_trained_in_current_epoch > 0:
                     steps_trained_in_current_epoch -= 1
                     continue
-
+                # 训练，输入的 inputs 包括 labels, inut_ids, attention_mask
                 tr_loss += self.training_step(model, inputs)
 
                 if (step + 1) % self.args.gradient_accumulation_steps == 0 or (

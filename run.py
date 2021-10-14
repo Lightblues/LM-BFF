@@ -94,7 +94,7 @@ class DynamicDataTrainingArguments(DataTrainingArguments):
     )
 
     mapping: str = field(
-        default=None,
+        default="{0:'无',1:'有'}",
         metadata={"help": "Label word mapping"}
     )
 
@@ -260,6 +260,7 @@ class DynamicTrainingArguments(TrainingArguments):
 
 
 def main():
+    # 扩展了 transformers 包中的参数
     parser = HfArgumentParser((ModelArguments, DynamicDataTrainingArguments, DynamicTrainingArguments))
 
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
@@ -277,7 +278,7 @@ def main():
     if training_args.no_predict:
         training_args.do_predict = False
 
-    # Setup logging
+    # Setup logging 
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
@@ -285,6 +286,7 @@ def main():
     )
 
     # Load prompt/template/mapping file
+    # run_experiment.sh 默认未定义 prompt 或 template
     if data_args.prompt:
         if data_args.prompt_path is not None:
             assert data_args.prompt_id is not None
@@ -337,6 +339,7 @@ def main():
     ):
         raise ValueError(f"Output directory ({training_args.output_dir}) already exists.")
 
+    # 输出训练相关信息和参数
     logger.warning(
         "Process rank: %s, device: %s, n_gpu: %s, distributed training: %s, 16-bits training: %s",
         training_args.local_rank,
@@ -387,6 +390,7 @@ def main():
         else:
             logger.info("Automatically convert the template to using demonstrations.")
             if data_args.template_list is not None:
+                # 有 template_list 时
                 for i in range(len(data_args.template_list)):
                     old_template = data_args.template_list[i]
                     new_template = old_template + ''
@@ -432,6 +436,7 @@ def main():
         cache_dir=model_args.cache_dir,
     )
 
+    # 找到不同任务所对应的模型
     if 'prompt' in model_args.few_shot_type:
         if config.model_type == 'roberta':
             model_fn = RobertaForPromptFinetuning
@@ -452,7 +457,7 @@ def main():
         cache_dir=model_args.cache_dir,
     )
 
-    # Get our special datasets.
+    # Get our special datasets. 读取数据集！TODO 需要构建
     train_dataset = (
         FewShotDataset(data_args, tokenizer=tokenizer, mode="train", use_demo=("demo" in model_args.few_shot_type))
     )
@@ -468,7 +473,7 @@ def main():
     )
 
     set_seed(training_args.seed)
-
+    # 读取 PLM
     model = model_fn.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -483,6 +488,7 @@ def main():
 
     # Pass dataset and argument information to the model
     if data_args.prompt:
+        # 传入 label word
         model.label_word_list = torch.tensor(train_dataset.label_word_list).long().cuda()
     if output_modes_mapping[data_args.task_name] == 'regression':
         # lower / upper bounds
@@ -517,7 +523,7 @@ def main():
 
         return compute_metrics_fn
     
-    # Initialize our Trainer
+    # Initialize our Trainer 这里继承的是 transformers.Trainer
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -613,6 +619,7 @@ def main():
 
             test_results.update(test_result)
 
+    # 保存结果
     with FileLock('log.lock'):
         with open('log', 'a') as f:
             final_result.update(vars(model_args))

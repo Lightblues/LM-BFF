@@ -247,6 +247,43 @@ class Sst2Processor(DataProcessor):
         return examples
 
 
+class MeituanProcessor(DataProcessor):
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence1"].numpy().decode("utf-8"),
+            tensor_dict["sentence2"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(pd.read_csv(os.path.join(data_dir, "train.csv"), header=None).values.tolist(), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(pd.read_csv(os.path.join(data_dir, "dev.csv"), header=None).values.tolist(), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(pd.read_csv(os.path.join(data_dir, "test.csv"), header=None).values.tolist(), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return [0,1]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training, dev and test sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[1]
+            text_b = line[2]
+            label = line[0]
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
 class StsbProcessor(DataProcessor):
     """Processor for the STS-B data set (GLUE version)."""
 
@@ -553,7 +590,8 @@ processors_mapping = {
     "subj": TextClassificationProcessor("subj"),
     "trec": TextClassificationProcessor("trec"),
     "cr": TextClassificationProcessor("cr"),
-    "mpqa": TextClassificationProcessor("mpqa")
+    "mpqa": TextClassificationProcessor("mpqa"),
+    "meituan": MeituanProcessor()
 }
 
 num_labels_mapping = {
@@ -572,7 +610,8 @@ num_labels_mapping = {
     "subj": 2,
     "trec": 6,
     "cr": 2,
-    "mpqa": 2
+    "mpqa": 2,
+    "meituan": 2
 }
 
 output_modes_mapping = {
@@ -592,7 +631,8 @@ output_modes_mapping = {
     "subj": "classification",
     "trec": "classification",
     "cr": "classification",
-    "mpqa": "classification"
+    "mpqa": "classification",
+    "meituan": "classification"
 }
 
 # Return a function that takes (task_name, preds, labels) as inputs
@@ -614,6 +654,7 @@ compute_metrics_mapping = {
     "trec": text_classification_metrics,
     "cr": text_classification_metrics,
     "mpqa": text_classification_metrics,
+    "meituan": text_classification_metrics,
 }
 
 # For regression task only: median
